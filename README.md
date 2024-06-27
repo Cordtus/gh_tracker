@@ -1,51 +1,77 @@
-# multi-repo / multi-org github commits exporter
 
-Fetches the number of commits from specified GitHub repositories and exposes metrics for monitoring using Prometheus and Grafana.
+# GitHub Activity Tracker
 
-## Prerequisites
+Tracks activity across multiple GitHub repositories and organizations and stores the data for visualization in Grafana.
 
-- [Node.js](https://nodejs.org/) installed
-- [Yarn](https://yarnpkg.com/) installed
-- A GitHub Personal Access Token (PAT) for accessing private repositories if needed
+## Table of Contents
 
-### Setup
+- [Project Structure](#project-structure)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Dashboard Setup](#dashboard-setup)
 
-#### Clone the repository** and navigate into the project directory:
+## Project Structure
 
-```sh
-git clone <your-repo-url>
-cd <your-repo-directory>
+```
+.
+├── README.md
+├── activity.csv
+├── dash.json
+├── db.js
+├── index.js
+├── sources.json
+└── lambda/
+    ├── README.md
+    ├── lambda_function
+    └── s3dash.json
 ```
 
-#### Add required packages
+### Files and Directories
 
-`yarn add axios node-cron prom-client express dotenv`
+- `README.md`: What you are currently reading.
+- `activity.csv`: Generated CSV file containing activity data.
+- `dash.json`: Grafana dashboard configuration JSON.
+- `db.js`: SQLite db init and schema script.
+- `index.js`: Main script to fetch activity and update db.
+- `sources.json`: List of tracked repos and orgs.
+- `lambda/`: AWS Lambda setup.
 
-#### Create `.env` file in root dir and add your PAT 
+## Usage
 
-echo "GITHUB_TOKEN=your_personal_github_token" > .env
+Run the GitHub activity tracker:
 
-#### Install dependencies
+```bash
+node index.js
+```
 
-[I use `yarn` here, you can use another package manager no problem]
+This will fetch the latest commits from the specified repositories and organizations, update the SQLite database, and generate the `activity.csv` file.
 
-`yarn install`
+## Configuration
 
- 
-#### Create a sources.json file in the root directory with the following structure:
+### GitHub Personal Access Token (PAT)
 
+Ensure you have a `.env` file in the project root directory containing your GitHub Personal Access Token (PAT):
+
+```env
+GITHUB_PAT=your_generic_github_pat
+```
+*This is optional, but helps to avoid rate-limiting*
+
+### Sources JSON
+
+The `sources.json` file should contain a list of repositories and organizations to track. Example `sources.json`:
 
 ```json
 [
+    {
+        "repo": "github_org/repo",
+        "pat": "CUSTOM_PAT_FOR_THIS_REPO"
+    },    
     {
         "repo": "grpc/grpc-web"
     },
     {
         "repo": "codecrafters-io"
-    },
-    {
-        "repo": "github_org/repo",
-        "pat": "YOUR_PAT_FOR_JEWEL_DISTRIBUTOR"
     },
     {
         "repo": "github_org/repo"
@@ -54,30 +80,23 @@ echo "GITHUB_TOKEN=your_personal_github_token" > .env
         "repo": "github_org"
     }
 ]
-
 ```
 
-### Running the Exporter
+- `repo`: The repository or organization to track.
+- `pat`: (Optional) Specific PAT for accessing private repositories.
 
-#### Start the script
+## Dashboard Setup
 
-`yarn start`
+To visualize the data in Grafana, use the provided `dash.json` configuration. Follow these steps to set up the Grafana dashboard:
 
+1. **Open Grafana and create a new dashboard:**
+   - Open Grafana in browser.
+   - Go to `"Create"` -> `"Import"`.
 
+2. **Import the Dashboard:**
+   - Copy contents of `dash.json`.
+   - Paste into the Import field and "Load".
 
-The script will:
-
- - Fetch the number of commits from the specified repositories.
- - Log the commit counts to a file.
- - Expose metrics on port 3000 for Prometheus to scrape.
-
-#### Monitoring with Prometheus and Grafana
-
-1. Set up Prometheus to scrape the metrics from http://localhost:3000/metrics.
-2. Configure Grafana to visualize the data from Prometheus.
-
-## License 
-
-This project is licensed under the MIT License.
-
-## Summary
+3. **Configure the Data Source:**
+   - Ensure you have an SQLite or S3 data source configured in Grafana.
+   - Update the data source settings in the imported dashboard panels to match your setup.
