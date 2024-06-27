@@ -1,0 +1,152 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "GitHub Activity Tracker",
+    "tags": [],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 0,
+    "refresh": "5m",
+    "panels": [
+      {
+        "type": "graph",
+        "title": "Commits Over Time by Repo",
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "rawSql": "SELECT repo as metric, strftime('%Y-%m-%d', commit_date) as time, SUM(commits) as value FROM activity GROUP BY repo, time ORDER BY time ASC;",
+            "refId": "A"
+          }
+        ],
+        "datasource": "SQLite",
+        "xaxis": { "mode": "time" },
+        "yaxes": [{ "format": "short" }, { "format": "short" }]
+      },
+      {
+        "type": "graph",
+        "title": "Commits Over Time by Org",
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "rawSql": "SELECT repos.org as metric, strftime('%Y-%m-%d', activity.commit_date) as time, SUM(activity.commits) as value FROM activity JOIN repos ON activity.repo = repos.repo GROUP BY repos.org, time ORDER BY time ASC;",
+            "refId": "A"
+          }
+        ],
+        "datasource": "SQLite",
+        "xaxis": { "mode": "time" },
+        "yaxes": [{ "format": "short" }, { "format": "short" }]
+      },
+      {
+        "type": "graph",
+        "title": "Commits Over Time Overall",
+        "gridPos": { "x": 0, "y": 8, "w": 24, "h": 8 },
+        "targets": [
+          {
+            "rawSql": "SELECT strftime('%Y-%m-%d', commit_date) as time, SUM(commits) as value FROM activity GROUP BY time ORDER BY time ASC;",
+            "refId": "A"
+          }
+        ],
+        "datasource": "SQLite",
+        "xaxis": { "mode": "time" },
+        "yaxes": [{ "format": "short" }, { "format": "short" }]
+      },
+      {
+        "type": "stat",
+        "title": "Total Commits by Repo",
+        "gridPos": { "x": 0, "y": 16, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "rawSql": "SELECT repo as metric, SUM(commits) as value FROM activity GROUP BY repo ORDER BY value DESC;",
+            "refId": "A"
+          }
+        ],
+        "datasource": "SQLite"
+      },
+      {
+        "type": "stat",
+        "title": "Total Commits by Org",
+        "gridPos": { "x": 6, "y": 16, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "rawSql": "SELECT repos.org as metric, SUM(activity.commits) as value FROM activity JOIN repos ON activity.repo = repos.repo GROUP BY repos.org ORDER BY value DESC;",
+            "refId": "A"
+          }
+        ],
+        "datasource": "SQLite"
+      },
+      {
+        "type": "stat",
+        "title": "Total Commits Overall",
+        "gridPos": { "x": 12, "y": 16, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "rawSql": "SELECT SUM(commits) as value FROM activity;",
+            "refId": "A"
+          }
+        ],
+        "datasource": "SQLite"
+      },
+      {
+        "type": "piechart",
+        "title": "Share of Total Activity by Org",
+        "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "rawSql": "SELECT repos.org as metric, SUM(activity.commits) as value FROM activity JOIN repos ON activity.repo = repos.repo GROUP BY repos.org;",
+            "refId": "A"
+          }
+        ],
+        "datasource": "SQLite"
+      },
+      {
+        "type": "piechart",
+        "title": "Share of Total Activity by Repo",
+        "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "rawSql": "SELECT repo as metric, SUM(commits) as value FROM activity GROUP BY repo;",
+            "refId": "A"
+          }
+        ],
+        "datasource": "SQLite"
+      },
+      {
+        "type": "stat",
+        "title": "Total Number of Repos by Org",
+        "gridPos": { "x": 0, "y": 28, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "rawSql": "SELECT org as metric, COUNT(repo) as value FROM repos GROUP BY org;",
+            "refId": "A"
+          }
+        ],
+        "datasource": "SQLite"
+      },
+      {
+        "type": "table",
+        "title": "Top 3 Repos by Overall Activity",
+        "gridPos": { "x": 6, "y": 28, "w": 9, "h": 4 },
+        "targets": [
+          {
+            "rawSql": "SELECT repo as metric, SUM(commits) as value FROM activity GROUP BY repo ORDER BY value DESC LIMIT 3;",
+            "refId": "A"
+          }
+        ],
+        "datasource": "SQLite"
+      },
+      {
+        "type": "table",
+        "title": "Top 3 Orgs by Overall Activity",
+        "gridPos": { "x": 15, "y": 28, "w": 9, "h": 4 },
+        "targets": [
+          {
+            "rawSql": "SELECT repos.org as metric, SUM(activity.commits) as value FROM activity JOIN repos ON activity.repo = repos.repo GROUP BY repos.org ORDER BY value DESC LIMIT 3;",
+            "refId": "A"
+          }
+        ],
+        "datasource": "SQLite"
+      }
+    ]
+  },
+  "overwrite": false
+}

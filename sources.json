@@ -1,0 +1,92 @@
+[
+    {
+        "repo": "spaceandtimelabs/sxt-proof-of-sql"
+    },
+    {
+        "repo": "DUNEanalytics"
+    },
+    {
+        "repo": "blocknative"
+    },
+    {
+        "repo": "DeBankDeFi"
+    },
+    {
+        "repo": "RabbyHub/Rabby"
+    },
+    {
+        "repo": "gasdotzip/gas-lz-contracts"
+    },
+    {
+        "repo": "alleslabs"
+    },
+    {
+        "repo": "andromedaprotocol"
+    },
+    {
+        "repo": "rarible"
+    },
+    {
+        "repo": "xei-finance"
+    },
+    {
+        "repo": "lasmetaio"
+    },
+    {
+        "repo": "Nomis-cc"
+    },
+    {
+        "repo": "bancorprotocol"
+    },
+    {
+        "repo": "Jelly-Labs/jelly-verse-contracts"
+    },
+    {
+        "repo": "protofire"
+    },
+    {
+        "repo": "We-Bump"
+    },
+    {
+        "repo": "kawafinance"
+    },
+    {
+        "repo": "mysofinance"
+    },
+    {
+        "repo": "dwallet-labs/dwallet-network"
+    },
+    {
+        "repo": "dfns"
+    },
+    {
+        "repo": "tenderly"
+    },
+    {
+        "repo": "symbiosis-finance"
+    },
+    {
+        "repo": "Cryptorubic"
+    },
+    {
+        "repo": "0xsquid"
+    },
+    {
+        "repo": "Crownfi/crownfi-sei-swaps",
+        "pat": "YOUR_PAT_FOR_CROWNFI_SEI_SWAPS"
+    },
+    {
+        "repo": "Crownfi/court-coordinator",
+        "pat": "YOUR_PAT_FOR_COURT_COORDINATOR"
+    },
+    {
+        "repo": "Crownfi/jewel-distributor",
+        "pat": "YOUR_PAT_FOR_JEWEL_DISTRIBUTOR"
+    },
+    {
+        "repo": "stargate-protocol/stargate-v2"
+    },
+    {
+        "repo": "VoltaHQ"
+    }
+]

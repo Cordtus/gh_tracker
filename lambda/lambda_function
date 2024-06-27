@@ -1,0 +1,183 @@
+const axios = require('axios');
+const moment = require('moment');
+const sqlite3 = require('sqlite3').verbose();
+const { S3 } = require('aws-sdk');
+const s3 = new S3();
+const bucketName = 'your-s3-bucket-name';
+
+exports.handler = async (event) => {
+  const db = new sqlite3.Database('/tmp/activity.db');
+
+  db.serialize(() => {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS activity (
+        repo TEXT,
+        commit_date TEXT,
+        commits INTEGER,
+        PRIMARY KEY (repo, commit_date)
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS repos (
+        repo TEXT PRIMARY KEY,
+        org TEXT,
+        last_checked TEXT
+      )
+    `);
+  });
+
+  const genericGithubToken = process.env.GITHUB_PAT;
+  const sources = JSON.parse(process.env.SOURCES_JSON);
+
+  const fetchOrgRepos = async (org, token = genericGithubToken) => {
+    console.log(`Fetching repos for organization: ${org}`);
+    try {
+      const response = await axios.get(`https://api.github.com/orgs/${org}/repos`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const repos = response.data.filter(repo => !repo.fork);
+      console.log(`Fetched ${repos.length} repos for organization: ${org} (excluding forks)`);
+      return repos;
+    } catch (error) {
+      console.error(`Error fetching repos for org ${org}:`, error.message);
+      return [];
+    }
+  };
+
+  const fetchRepoCommits = async (repo, token = genericGithubToken, since) => {
+    const commits = [];
+    let page = 1;
+    const perPage = 100;
+    console.log(`Fetching commits for repository: ${repo} since ${since}`);
+
+    try {
+      while (true) {
+        console.log(`Fetching page ${page} for repository: ${repo}`);
+        const response = await axios.get(`https://api.github.com/repos/${repo}/commits`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          params: {
+            per_page: perPage,
+            page: page,
+            since: since
+          }
+        });
+
+        if (response.data.length === 0) break;
+        commits.push(...response.data);
+        console.log(`Fetched ${response.data.length} commits from page ${page} for repository: ${repo}`);
+        page++;
+      }
+
+      console.log(`Total commits fetched for repository ${repo}: ${commits.length}`);
+      return commits.map(commit => ({
+        date: commit.commit.author.date,
+        sha: commit.sha
+      }));
+    } catch (error) {
+      console.error(`Error fetching commits for repo ${repo}:`, error.message);
+      return [];
+    }
+  };
+
+  const updateActivity = async (sources) => {
+    const now = moment().toISOString();
+    let activity = {
+      orgs: {},
+      repos: {},
+      overall: 0
+    };
+
+    for (const source of sources) {
+      const repoPath = source.repo;
+      const token = source.pat || genericGithubToken;
+      const pathParts = repoPath.split('/');
+
+      if (pathParts.length === 1) {
+        // This is an org
+        const org = repoPath;
+        console.log(`Processing organization: ${org}`);
+        const repos = await fetchOrgRepos(org, token);
+
+        for (const repo of repos) {
+          const repoName = `${org}/${repo.name}`;
+          await processRepo(repoName, org, token, activity, now);
+        }
+      } else if (pathParts.length === 2) {
+        // This is a specific repo
+        console.log(`Processing repository: ${repoPath}`);
+        await processRepo(repoPath, null, token, activity, now);
+      }
+    }
+
+    return activity;
+  };
+
+  const processRepo = async (repoName, org, token, activity, now) => {
+    db.get(`SELECT last_checked FROM repos WHERE repo = ?`, [repoName], async (err, row) => {
+      if (err) {
+        console.error(`Database error: ${err.message}`);
+        return;
+      }
+
+      const lastChecked = row ? row.last_checked : null;
+      const since = lastChecked ? moment(lastChecked).toISOString() : null;
+      const commits = await fetchRepoCommits(repoName, token, since);
+
+      if (commits.length > 0) {
+        if (row) {
+          db.run(`UPDATE repos SET last_checked = ? WHERE repo = ?`, [now, repoName]);
+        } else {
+          db.run(`INSERT INTO repos (repo, org, last_checked) VALUES (?, ?, ?)`, [repoName, org, now]);
+        }
+
+        commits.forEach(commit => {
+          db.run(`INSERT OR REPLACE INTO activity (repo, commit_date, commits) VALUES (?, ?, ?)`,
+            [repoName, commit.date, 1]);
+        });
+
+        activity.repos[repoName] = (activity.repos[repoName] || 0) + commits.length;
+        activity.overall += commits.length;
+        if (org) {
+          activity.orgs[org] = (activity.orgs[org] || 0) + commits.length;
+        }
+        console.log(`Total activity for repository ${repoName}: ${activity.repos[repoName]} commits`);
+      }
+    });
+  };
+
+  const exportToS3 = async (activity) => {
+    const records = [];
+
+    for (const org in activity.orgs) {
+      records.push({ type: 'Org', name: org, commits: activity.orgs[org] });
+    }
+
+    for (const repo in activity.repos) {
+      records.push({ type: 'Repo', name: repo, commits: activity.repos[repo] });
+    }
+
+    const csv = records.map(record => `${record.type},${record.name},${record.commits}`).join('\n');
+    const params = {
+      Bucket: bucketName,
+      Key: 'activity.csv',
+      Body: csv,
+      ContentType: 'text/csv'
+    };
+
+    await s3.putObject(params).promise();
+    console.log('Activity data has been written to S3');
+  };
+
+  console.log('Starting activity update process...');
+  const activity = await updateActivity(sources);
+  console.log(JSON.stringify(activity, null, 2));
+  await exportToS3(activity);
+  console.log('Activity update process completed.');
+
+  db.close();
+};

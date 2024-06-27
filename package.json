@@ -1,0 +1,17 @@
+{
+  "name": "gh_tracker",
+  "version": "1.0.0",
+  "description": "log and chart github commits by repo(s) or org(s)",
+  "main": "index.js",
+  "repository": "https://github.com/Cordtus/gh_tracker",
+  "author": "Cordt Hanson",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "aws-sdk": "^2.1649.0",
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.5",
+    "moment": "^2.30.1",
+    "sqlite3": "^5.1.7"
+  }
+}
